@@ -3,8 +3,8 @@ Type: Package
 Title: What the Package Does (Title Case)
 Version: 0.1
 Date: 2015-06-10
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Author: Junchen Feng
+Maintainer: Who to complain to <junchen.feng@17zuoye.com>
+Description: inhouse business intelligence toolkit
+License: GPL V2
 LazyData: TRUE
