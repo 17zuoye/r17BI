@@ -20,9 +20,13 @@ matrix_rowsum<-function(in_matrix,ncol){
 }
 
 
-track_relative_time <- function(start_time_data, act_time_data, track_length,
+track_relative_time <- function(start_time_data, act_time_data, track_length, end_time,
                                 time_unit = 'days', seq_override=FALSE){
   # start_time_data, act_time_data has field id and time. act_time_data has additional field of num
+  # track length is time periods tracked since the start time. The 1st cell is time 0, so nth day actually tracks n-1 day
+  # end_time handles cases where start_time_data does not survive for the whole duration of track length, which is a POSIXct object
+  # If pad with 0s, it will result in bias.
+
 
   # The function implicitly assumes that the spell is alive since the start time, hence one unique start time.
   # If the actor could have several active spells, the results will be wrong.
@@ -30,10 +34,6 @@ track_relative_time <- function(start_time_data, act_time_data, track_length,
   if (length(unique(start_time_data$id)) != num_id){
     stop('Start time is not unique!')
   }
-
-  # the 1st cell is time 0, so nth day tracking requires n+1 cells
-  t_track_length = track_length+1
-
 
   # make sure that the tracking activity is within the range
 
@@ -45,7 +45,7 @@ track_relative_time <- function(start_time_data, act_time_data, track_length,
   # compute
   time_diff_stat = meta_data %>%
     mutate(time_dist = floor(difftime(atime, stime, units=time_unit))+1) %>% # +1 in timedelta because idx starts at 1
-    filter(time_dist <= t_track_length) %>%
+    filter(time_dist <= track_length) %>%
     group_by(id, time_dist) %>% summarize(n=sum(num))
 
 
@@ -62,25 +62,43 @@ track_relative_time <- function(start_time_data, act_time_data, track_length,
   }
 
   # fill the time flow
-  pathway = matrix(data=0, ncol = t_track_length, nrow = num_id)
+  # If use cumsum, then has to worry about the gap days.
+  pathway = matrix(data=0, ncol = track_length, nrow = num_id)
   # vectorize to speed up
   sids = start_time_data$id
   aids = time_diff_stat$id
   ts = time_diff_stat$time_dist
   ns = time_diff_stat$n
 
-  for (t in seq(t_track_length)){
+  for (t in seq(track_length)){
     sample_idx = which(ts==t)
     if (length(sample_idx)>0){
       active_id_idx = sids %in% aids[sample_idx]
       pathway[active_id_idx,t] = ns[sample_idx]
     }
   }
+  timeline = matrix_rowsum(pathway, track_length)
 
-  timeline = matrix_rowsum(pathway, t_track_length)
-  # for all 0s, convert into NA
-  timeline[which(rowSums(timeline)==0),]=NA
-  return(timeline)
+  # Fill invalid entries with NA
+  # filter for spells whose max length is smaller than track_length
+  invalid_data = start_time_data %>% mutate(max_length = floor(as.numeric( difftime(end_time, stime ,time_unit) ))+1) %>%
+    filter(max_length<track_length)
+
+  invalid_ids = invalid_data$id
+  invalid_idx = invalid_data$max_length + 1
+  if (sum(invalid_idx<=0)>0){
+    stop('Invalid stop gap measures')
+  }
+
+  num_invalid_obs = length(invalid_ids)
+  if (num_invalid_obs>0){
+    for (j in seq(num_invalid_obs)){
+      timeline[invalid_ids[j], invalid_idx[j]:track_length] = NA
+    }
+  }
+
+  #output
+  list(id = sids, track=timeline)
 }
 
 
