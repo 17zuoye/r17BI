@@ -1,6 +1,7 @@
 # setup
 # benchmark time are all 2015-06-01
 library(testthat)
+library(dplyr)
 library(r17BI)
 # test for single user
 sdata = data.frame(id=1, time = as.POSIXct(strptime('2015-06-01','%F')))
