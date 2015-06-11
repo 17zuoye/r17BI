@@ -27,6 +27,10 @@ adata = data.frame(id=c(1,2),
                      num=c(1,3))
 
 test1 = track_relative_time(sdata_1, adata, track_length)
+
+
+
+
 expect_that(test1[1,6:16], equals(rep(1,11)) )
 expect_that(test1[2,9:16], equals(rep(3,8)) )
 
