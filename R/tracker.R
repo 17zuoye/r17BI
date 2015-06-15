@@ -53,7 +53,7 @@ track_relative_time <- function(start_time_data, act_time_data, track_length, en
   is_invalid_time_distance = sum(time_diff_stat$time_dist<0)>0
   if (is_invalid_time_distance){
     if (seq_override){
-      # in some cases, the 2nd activity will precede the benchmark date
+      # in some cases, the 2nd activity will precede the start_time_data date
       # such as homework assignment after authentication
       time_diff_stat = time_diff_stat %>% filter(time_dist>0)
     }else{
@@ -102,25 +102,40 @@ track_relative_time <- function(start_time_data, act_time_data, track_length, en
 }
 
 
-track_calendar_time <- function(benchmark, action_time_data, track_length){
+track_calendar_time <- function(start_time_data, action_time_data, track_length, end_time,
+                                time_unit = 'days', aggregate_unit = 'month'){
 
-  num_id = length(benchmark$id)
-  t_track_length = track_length + 1
-  time_unit = 'days'
+  # the input descriptions are the same as the track relative time
+  num_id = nrow(start_time_data)
+  if (length(unique(start_time_data$id)) != num_id){
+    stop('Start time is not unique!')
+  }
 
-  # 根据benchmark的起始日期和追踪时长，确定终结日期
-  benchmark_end = transform(benchmark, edate = get_dateint_in_k_days(date, track_length)) %>% select(id, sdate=date, edate)
-  # 把act数据和benchmark联系起来
-  meta_data = merge(benchmark_end, action_time_data, all=T)
-  meta_data$date[is.na(meta_data$date)]=99999999  # 将无效数据设置为极大，这样就肯定不在范围内
+  # transform track length
+  if (time_units=='days'){
+    track_length_insec = track_length*86400
+  }else if(time_units=='weeks'){
+    track_length_insec = track_length*604800
+  }else{
+    stop('unsupported time unit.')
+  }
 
-  #第一步：如果在benchmark中是无效的，去掉
-  #第二步: 找到符合追踪条件的活动数据，
-  #第三步：按月和主ID汇总, 如果主Key在追踪时间段内无活动，sum(n[flag]) = 0；这对于百分比计算有用
-  #第四步：按月汇总
 
-  by_month_path = filter(meta_data, !is.na(edate)) %>%
-    transform(flag = (date>=sdate & date<=edate)) %>%
-    transform(mid=get_month(sdate)) %>% group_by(id,mid) %>% summarize(num = sum(n[flag]))
-  return (by_month_path)
+  # set the end time by the etime, then filter out all spells whose etime exceeds endtime
+  valid_start_data = start_time_data %>% transform(etime = time+track_length_insec) %>%
+    select(id, stime=time, etime) %>%
+    filter(etime < end_time)
+
+
+  # merge with data
+  meta_data = merge(valid_start_data, action_time_data, all.x=T)
+
+
+  # Filter action events only within the time interval and aggregate
+  calendar_aggregate = meta_data %>%
+    filter(time >= stime & time <= etime) %>%
+    group_by(id) %>% summarize(num = n())
+
+
+  return (calendar_aggregate)
 }
