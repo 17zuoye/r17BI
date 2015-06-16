@@ -21,13 +21,14 @@ test2 = track_relative_time(sdata, adata_2, track_length, end_time)
 expect_that(test2$track[6:15], equals(c(rep(1,3),rep(4,7)) ) )
 
 # test for multiple users
-sdata_1 = data.frame(id=c(1,2), time = rep(as.POSIXct(strptime('2015-06-01','%F')),2))
+# 1,8 jump to test for random value ids
+sdata_1 = data.frame(id=c(1,8), time = rep(as.POSIXct(strptime('2015-06-01','%F')),2))
 sdata_2 = data.frame(id=c(1,3), time = rep(as.POSIXct(strptime('2015-06-01','%F')),2))
-sdata_3 = data.frame(id=c(1,2), time = c(as.POSIXct(strptime('2015-06-01','%F')),
+sdata_3 = data.frame(id=c(1,8), time = c(as.POSIXct(strptime('2015-06-01','%F')),
                                          as.POSIXct(strptime('2015-06-5','%F')))
                      )
 
-adata = data.frame(id=c(1,2),
+adata = data.frame(id=c(1,8),
                      time = c(as.POSIXct(strptime('2015-06-06','%F')),
                               as.POSIXct(strptime('2015-06-09','%F'))),
                      num=c(1,3))

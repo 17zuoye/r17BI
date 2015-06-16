@@ -23,6 +23,10 @@ matrix_rowsum<-function(in_matrix,ncol){
 track_relative_time <- function(start_time_data, act_time_data, track_length, end_time,
                                 time_unit = 'days', seq_override=FALSE){
   # start_time_data, act_time_data has field id and time. act_time_data has additional field of num
+  if(!'num' %in% names(act_time_data)){
+    act_time_data$num = 1
+  }
+
   # track length is time periods tracked since the start time. The 1st cell is time 0, so nth day actually tracks n-1 day
   # end_time handles cases where start_time_data does not survive for the whole duration of track length, which is a POSIXct object
   # If pad with 0s, it will result in bias.
@@ -93,7 +97,8 @@ track_relative_time <- function(start_time_data, act_time_data, track_length, en
   num_invalid_obs = length(invalid_ids)
   if (num_invalid_obs>0){
     for (j in seq(num_invalid_obs)){
-      timeline[invalid_ids[j], invalid_idx[j]:track_length] = NA
+      mod_idx = which(sids == invalid_ids[j])
+      timeline[mod_idx, invalid_idx[j]:track_length] = NA
     }
   }
 
